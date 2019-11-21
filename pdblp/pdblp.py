@@ -5,6 +5,8 @@ import blpapi
 import numpy as np
 import pandas as pd
 
+from . import exc
+
 
 _RESPONSE_TYPES = [blpapi.Event.RESPONSE, blpapi.Event.PARTIAL_RESPONSE]
 
@@ -231,8 +233,8 @@ class BCon(object):
                 for msg in ev:
                     logger.warning('Message Received:\n{}'.format(msg))
                 if ev.eventType() == blpapi.Event.TIMEOUT:
-                    raise RuntimeError('Timeout, increase BCon.timeout '
-                                       'attribute')
+                    raise exc.TimeoutError('Timeout, increase BCon.timeout '
+                                           'attribute')
                 else:
                     raise RuntimeError('Unexpected Event Type: {!r}'
                                        .format(ev_name))
@@ -306,8 +308,10 @@ class BCon(object):
             d = msg['element']['HistoricalDataResponse']
             has_security_error = 'securityError' in d['securityData']
             has_field_exception = len(d['securityData']['fieldExceptions']) > 0
-            if has_security_error or has_field_exception:
-                raise ValueError(d)
+            if has_security_error:
+                raise exc.SecurityError(d)
+            if has_field_exception:
+                raise exc.FieldError(d)
             ticker = d['securityData']['security']
             fldDatas = d['securityData']['fieldData']
             for fd in fldDatas:
@@ -379,7 +383,7 @@ class BCon(object):
                 secData = security_data_dict['securityData']
                 ticker = secData['security']
                 if 'securityError' in secData:
-                    raise ValueError('Unknow security {!r}'.format(ticker))
+                    raise exc.SecurityError('Unknow security {!r}'.format(ticker))
                 self._check_fieldExceptions(secData['fieldExceptions'])
                 fieldData = secData['fieldData']['fieldData']
                 for fld in flds:
@@ -481,7 +485,7 @@ class BCon(object):
                 secData = security_data_dict['securityData']
                 ticker = secData['security']
                 if 'securityError' in secData:
-                    raise ValueError('Unknow security {!r}'.format(ticker))
+                    raise exc.SecurityError('Unknow security {!r}'.format(ticker))
                 self._check_fieldExceptions(secData['fieldExceptions'])
                 fieldData = secData['fieldData']['fieldData']
                 for fld in flds:
@@ -508,7 +512,7 @@ class BCon(object):
         for fe_dict in field_exceptions:
             fe = fe_dict['fieldExceptions']
             if fe['errorInfo']['errorInfo']['subcategory'] == 'INVALID_FIELD':
-                raise ValueError('{}: INVALID_FIELD'.format(fe['fieldId']))
+                raise exc.FieldError('{}: INVALID_FIELD'.format(fe['fieldId']))
 
     def ref_hist(self, tickers, flds, dates, ovrds=None,
                  date_field='REFERENCE_DATE'):

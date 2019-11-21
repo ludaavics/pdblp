@@ -1,3 +1,5 @@
-from .pdblp import BCon  # NOQA
-from .pdblp import bopen  # NOQA
-from ._version import __version__  # NOQA
+from . import exc
+from ._version import __version__
+from .pdblp import BCon, bopen
+
+__all__ = ["BCon", "bopen", "exc", "__version__"]
